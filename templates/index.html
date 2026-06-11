@@ -156,7 +156,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="tap-hint" id="tap-hint">Tap to reveal answer</div>
       </div>
       <div class="card-face card-back">
+        <div id="front-preview" style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)"></div>
         <div id="back-content"></div>
+        <div id="flip-back-hint" style="display:none;text-align:center;margin-top:16px;font-size:12px;color:var(--muted)">↩ Tap card to flip back to question</div>
       </div>
     </div>
   </div>
@@ -416,21 +418,44 @@ function showCard() {
   document.getElementById('front-content').innerHTML = front;
   document.getElementById('back-content').innerHTML  = card.back_html || '';
 
+  // Copy front into the answer face so it's always visible
+  let preview = '';
+  if (card.front_type === 'image') {
+    preview = `<img src="/image/${card.image_name}" loading="lazy" style="max-height:180px;width:auto;display:block;margin:0 auto;">`;
+    if (card.front_caption) preview += `<p style="font-size:12px;color:var(--muted);margin-top:6px;text-align:center">${card.front_caption}</p>`;
+  } else {
+    preview = `<div style="font-size:13px;color:var(--muted)">${card.front_html||''}</div>`;
+  }
+  document.getElementById('front-preview').innerHTML = preview;
+  document.getElementById('flip-back-hint').style.display = 'none';
+
   // Scroll cards to top
   document.querySelectorAll('.card-face').forEach(f => f.scrollTop = 0);
 }
 
 function flipCard() {
-  if (S.flipped) return;
-  S.flipped = true;
-  document.getElementById('card-wrap').classList.add('flipped');
-  document.getElementById('show-btn').classList.add('hidden');
-  document.getElementById('ratings').classList.remove('hidden');
-  document.getElementById('tip-row').style.display = 'flex';
-  document.getElementById('tap-hint').style.display = 'none';
-  // Show real calculated intervals for this card
-  const iv = previewIntervals(S.cards[S.idx].id);
-  [1,2,3,4].forEach(r => document.getElementById(`iv-${r}`).textContent = fmtDays(iv[r]));
+  const card = S.cards[S.idx];
+  if (!S.flipped) {
+    // Flip to answer
+    S.flipped = true;
+    document.getElementById('card-wrap').classList.add('flipped');
+    document.getElementById('show-btn').classList.add('hidden');
+    document.getElementById('ratings').classList.remove('hidden');
+    document.getElementById('tip-row').style.display = 'flex';
+    document.getElementById('tap-hint').style.display = 'none';
+    document.getElementById('flip-back-hint').style.display = '';
+    const iv = previewIntervals(card.id);
+    [1,2,3,4].forEach(r => document.getElementById(`iv-${r}`).textContent = fmtDays(iv[r]));
+  } else {
+    // Flip back to question
+    S.flipped = false;
+    document.getElementById('card-wrap').classList.remove('flipped');
+    document.getElementById('show-btn').classList.remove('hidden');
+    document.getElementById('ratings').classList.add('hidden');
+    document.getElementById('tip-row').style.display = 'none';
+    document.getElementById('tap-hint').style.display = '';
+    document.getElementById('flip-back-hint').style.display = 'none';
+  }
 }
 
 function rate(rating) {
