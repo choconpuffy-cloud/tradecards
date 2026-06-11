@@ -95,6 +95,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .btn-hard{background:rgba(240,136,62,.15);color:var(--orange);border:1px solid rgba(240,136,62,.3)}
 .btn-good{background:rgba(88,166,255,.15);color:var(--blue);border:1px solid rgba(88,166,255,.3)}
 .btn-easy{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3)}
+/* Toast */
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(22,27,34,.95);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:20px;font-size:14px;font-weight:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;z-index:999;backdrop-filter:blur(10px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Mastery badge */
+.mastery-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:8px;background:var(--bg);border:1px solid var(--border);margin-left:6px}
+/* Tip row */
+.tip-row{display:flex;gap:6px;padding:0 16px 8px;flex-wrap:wrap}
+.tip-chip{font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px 8px}
 
 /* DONE */
 #done{background:var(--bg);justify-content:center;align-items:center;text-align:center;padding:40px 30px}
@@ -136,7 +144,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
     <div class="prog-lbl" id="prog-lbl">0 / 0</div>
   </div>
-  <div class="deck-lbl" id="deck-lbl"></div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
+    <div class="deck-lbl" id="deck-lbl"></div>
+    <span class="mastery-badge" id="mastery-badge"></span>
+  </div>
   <div class="card-scene">
     <div class="card-wrap" id="card-wrap" onclick="flipCard()">
       <div class="card-face card-front">
@@ -151,14 +162,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div class="rating-area">
     <button class="show-btn" id="show-btn" onclick="flipCard()">Show Answer</button>
+    <div class="tip-row" id="tip-row" style="display:none">
+      <span class="tip-chip">😰 Again — forgot it</span>
+      <span class="tip-chip">😅 Hard — barely got it</span>
+      <span class="tip-chip">😊 Good — remembered</span>
+      <span class="tip-chip">😎 Easy — too simple</span>
+    </div>
     <div class="ratings hidden" id="ratings">
-      <button class="rate-btn btn-again" onclick="rate(1)">Again<span>&lt;1d</span></button>
-      <button class="rate-btn btn-hard"  onclick="rate(2)">Hard<span>~1d</span></button>
-      <button class="rate-btn btn-good"  onclick="rate(3)">Good<span>4d</span></button>
-      <button class="rate-btn btn-easy"  onclick="rate(4)">Easy<span>7d+</span></button>
+      <button class="rate-btn btn-again" onclick="rate(1)">Again<span id="iv-1">…</span></button>
+      <button class="rate-btn btn-hard"  onclick="rate(2)">Hard<span id="iv-2">…</span></button>
+      <button class="rate-btn btn-good"  onclick="rate(3)">Good<span id="iv-3">…</span></button>
+      <button class="rate-btn btn-easy"  onclick="rate(4)">Easy<span id="iv-4">…</span></button>
     </div>
   </div>
 </div>
+
+<div id="toast"></div>
 
 <!-- DONE -->
 <div id="done" class="screen hidden">
@@ -209,10 +228,48 @@ function sm2(cardId, rating) {
 
 function isDue(cardId) {
   const p = getProgress()[cardId];
-  if (!p) return false; // new card
+  if (!p) return false;
   return p.due <= today();
 }
 function isNew(cardId) { return !getProgress()[cardId]; }
+
+// Preview what interval each button would give WITHOUT saving
+function previewIntervals(cardId) {
+  const p = getProgress()[cardId] || {};
+  let {interval=0, ease=2.5, reps=0} = p;
+  const calc = r => {
+    let i=interval, e=ease, n=reps;
+    if(r===1){i=1;}
+    else if(r===2){i=Math.max(1,i?Math.round(i*1.2):1);}
+    else if(r===3){if(n===0)i=1;else if(n===1)i=4;else i=Math.round(i*e);}
+    else{if(n===0)i=4;else if(n===1)i=7;else i=Math.round(i*e*1.3);}
+    return i;
+  };
+  return {1:calc(1),2:calc(2),3:calc(3),4:calc(4)};
+}
+
+function fmtDays(d) {
+  if(d<=1)return '<1d';
+  if(d<30)return d+'d';
+  if(d<365)return Math.round(d/30)+'mo';
+  return Math.round(d/365)+'yr';
+}
+
+function masteryInfo(cardId) {
+  const p = getProgress()[cardId];
+  if(!p)             return {label:'✨ New',    color:'var(--blue)'};
+  if(p.reps<=1)      return {label:'📖 Learning',color:'var(--orange)'};
+  if(p.interval<21)  return {label:'🔄 Review',  color:'var(--yellow)'};
+  return               {label:'🧠 Mature',  color:'var(--green)'};
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(()=>t.classList.remove('show'), 2200);
+}
 
 // Streak
 function calcStreak() {
@@ -312,6 +369,10 @@ function buildSession(deck) {
     else if (isDue(c.id)) due.push(c);
   });
 
+  // Most overdue first, then shuffle new cards for variety
+  due.sort((a,b) => (prog[a.id]?.due||'').localeCompare(prog[b.id]?.due||''));
+  for(let i=newCards.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[newCards[i],newCards[j]]=[newCards[j],newCards[i]];}
+
   return [...due, ...newCards.slice(0, newBudget)];
 }
 
@@ -340,6 +401,9 @@ function showCard() {
   document.getElementById('prog-fill').style.width = pct + '%';
   document.getElementById('prog-lbl').textContent = `${S.idx+1} / ${S.cards.length}`;
   document.getElementById('card-badge').textContent = `${card.deck_icon} ${card.deck}`;
+  const m = masteryInfo(card.id);
+  const mb = document.getElementById('mastery-badge');
+  mb.textContent = m.label; mb.style.color = m.color; mb.style.borderColor = m.color+'55';
 
   let front = '';
   if (card.front_type === 'image') {
@@ -362,15 +426,27 @@ function flipCard() {
   document.getElementById('card-wrap').classList.add('flipped');
   document.getElementById('show-btn').classList.add('hidden');
   document.getElementById('ratings').classList.remove('hidden');
+  document.getElementById('tip-row').style.display = 'flex';
   document.getElementById('tap-hint').style.display = 'none';
+  // Show real calculated intervals for this card
+  const iv = previewIntervals(S.cards[S.idx].id);
+  [1,2,3,4].forEach(r => document.getElementById(`iv-${r}`).textContent = fmtDays(iv[r]));
 }
 
 function rate(rating) {
   const card = S.cards[S.idx];
   const lbls = {1:'again',2:'hard',3:'good',4:'easy'};
   S.stats[lbls[rating]]++;
+  const iv = previewIntervals(card.id);
   sm2(card.id, rating);
-  if (rating === 1) S.cards.push(card); // show again this session
+  if(rating===1){
+    S.cards.push(card);
+    showToast('🔁 Showing again this session');
+  } else {
+    const toasts = {2:'😅 Hard — next review in ', 3:'👍 Good — see you in ', 4:'🚀 Easy — see you in '};
+    showToast(toasts[rating] + fmtDays(iv[rating]));
+  }
+  document.getElementById('tip-row').style.display = 'none';
   S.idx++;
   showCard();
 }
