@@ -1,4 +1,4 @@
-const CACHE = 'tradecards-v2';
+const CACHE = 'tradecards-v3';
 const PRECACHE = ['/', '/api/cards'];
 
 // On install: cache the shell + card data

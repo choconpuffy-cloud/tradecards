@@ -286,6 +286,118 @@ function calcStreak() {
   return streak;
 }
 
+// ── Candlestick SVG illustrations ──────────────────────────────────────────
+// Each entry: array of candle defs {h, o, c, l} — values 0–1 mapping top→bottom of chart
+// Bullish: c < o (close higher price = lower y).  Bearish: c > o.  Doji: |c-o| < 0.03
+const CANDLE_DEFS = {
+  'Doji':              [{h:.15, o:.5,  c:.5,  l:.85}],
+  'Long-Legged Doji':  [{h:.05, o:.5,  c:.5,  l:.95}],
+  'Dragonfly Doji':    [{h:.48, o:.5,  c:.5,  l:.92}],
+  'Gravestone Doji':   [{h:.08, o:.5,  c:.5,  l:.52}],
+  'Spinning Top':      [{h:.10, o:.35, c:.58, l:.90}],
+  'Marubozu':          [{h:.10, o:.10, c:.90, l:.90}],
+  'Hammer':            [{h:.14, o:.22, c:.16, l:.88}],
+  'Hanging Man':       [{h:.14, o:.16, c:.22, l:.88}],
+  'Inverted Hammer':   [{h:.12, o:.68, c:.64, l:.78}],
+  'Shooting Star':     [{h:.12, o:.64, c:.68, l:.78}],
+  'Powerbar':          [{h:.07, o:.08, c:.92, l:.93}],
+  'Inside Bar': [
+    {h:.08, o:.12, c:.82, l:.92},
+    {h:.28, o:.42, c:.58, l:.72}
+  ],
+  'Bullish Engulfing': [
+    {h:.30, o:.30, c:.58, l:.70},
+    {h:.15, o:.65, c:.15, l:.82}
+  ],
+  'Bearish Engulfing': [
+    {h:.30, o:.58, c:.30, l:.70},
+    {h:.12, o:.18, c:.72, l:.85}
+  ],
+  'Bullish Harami': [
+    {h:.10, o:.15, c:.78, l:.88},
+    {h:.30, o:.55, c:.42, l:.65}
+  ],
+  'Bearish Harami': [
+    {h:.10, o:.78, c:.15, l:.88},
+    {h:.30, o:.42, c:.55, l:.65}
+  ],
+  'Tweezer Tops': [
+    {h:.10, o:.48, c:.10, l:.62},
+    {h:.10, o:.14, c:.52, l:.65}
+  ],
+  'Tweezer Bottoms': [
+    {h:.35, o:.35, c:.88, l:.90},
+    {h:.35, o:.88, c:.35, l:.90}
+  ],
+  'Piercing Line': [
+    {h:.08, o:.10, c:.72, l:.88},
+    {h:.62, o:.78, c:.38, l:.92}
+  ],
+  'Dark Cloud Cover': [
+    {h:.08, o:.78, c:.10, l:.88},
+    {h:.06, o:.08, c:.52, l:.78}
+  ],
+  'Morning Star': [
+    {h:.08, o:.10, c:.60, l:.72},
+    {h:.62, o:.66, c:.70, l:.82},
+    {h:.15, o:.65, c:.18, l:.75}
+  ],
+  'Evening Star': [
+    {h:.22, o:.78, c:.22, l:.85},
+    {h:.08, o:.12, c:.16, l:.35},
+    {h:.18, o:.25, c:.72, l:.80}
+  ],
+  'Three White Soldiers': [
+    {h:.45, o:.50, c:.30, l:.58},
+    {h:.28, o:.35, c:.15, l:.42},
+    {h:.10, o:.18, c:.05, l:.28}
+  ],
+  'Three Black Crows': [
+    {h:.08, o:.12, c:.35, l:.42},
+    {h:.28, o:.32, c:.58, l:.65},
+    {h:.48, o:.52, c:.78, l:.85}
+  ],
+  'Rising Three Methods': [
+    {h:.12, o:.72, c:.12, l:.82},
+    {h:.18, o:.22, c:.40, l:.48},
+    {h:.32, o:.35, c:.52, l:.60},
+    {h:.45, o:.48, c:.62, l:.70},
+    {h:.05, o:.65, c:.05, l:.75}
+  ]
+};
+
+function makeCandleSVG(defs) {
+  const n = defs.length;
+  const W = Math.max(100, n * 66);
+  const H = 110;
+  const pad = 8;
+  const inner = H - pad * 2;
+  const slotW = (W - pad * 2) / n;
+  const bw = Math.min(slotW * 0.55, 28);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;margin:10px auto 4px;max-width:100%">`;
+  [.25, .5, .75].forEach(f => {
+    const y = (pad + f * inner).toFixed(1);
+    s += `<line x1="${pad}" y1="${y}" x2="${W-pad}" y2="${y}" stroke="#1c2128" stroke-width="1"/>`;
+  });
+  defs.forEach((c, i) => {
+    const cx = pad + slotW * i + slotW / 2;
+    const hy = pad + c.h * inner, ly = pad + c.l * inner;
+    const oy = pad + c.o * inner, cy2 = pad + c.c * inner;
+    const isDoji = Math.abs(c.o - c.c) < 0.03;
+    const col = isDoji ? '#8b949e' : (c.c < c.o ? '#3fb950' : '#f85149');
+    const bTop = Math.min(oy, cy2), bBot = Math.max(oy, cy2);
+    const bh = Math.max(bBot - bTop, isDoji ? 0 : 2);
+    s += `<line x1="${cx.toFixed(1)}" y1="${hy.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${ly.toFixed(1)}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`;
+    if (isDoji) {
+      s += `<line x1="${(cx-bw/2).toFixed(1)}" y1="${oy.toFixed(1)}" x2="${(cx+bw/2).toFixed(1)}" y2="${oy.toFixed(1)}" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>`;
+    } else {
+      s += `<rect x="${(cx-bw/2).toFixed(1)}" y="${bTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" rx="2"/>`;
+    }
+  });
+  s += '</svg>';
+  return s;
+}
+
 // ── Card data ─────────────────────────────────────────────────────────────
 let ALL_CARDS = [];
 
@@ -415,6 +527,16 @@ function showCard() {
   } else {
     front = card.front_html || '';
   }
+
+  // Prepend SVG candle illustration for Candlestick deck cards
+  let candleSVG = '';
+  if (card.deck === 'Candlesticks') {
+    const m = (card.front_html||'').match(/🕯\s*([^<]+)</);
+    const pname = m ? m[1].trim() : '';
+    if (pname && CANDLE_DEFS[pname]) candleSVG = makeCandleSVG(CANDLE_DEFS[pname]);
+  }
+  if (candleSVG) front = candleSVG + front;
+
   document.getElementById('front-content').innerHTML = front;
   document.getElementById('back-content').innerHTML  = card.back_html || '';
 
@@ -426,6 +548,7 @@ function showCard() {
   } else {
     preview = `<div style="font-size:13px;color:var(--muted)">${card.front_html||''}</div>`;
   }
+  if (candleSVG) preview = candleSVG + preview;
   document.getElementById('front-preview').innerHTML = preview;
   document.getElementById('flip-back-hint').style.display = 'none';
 
