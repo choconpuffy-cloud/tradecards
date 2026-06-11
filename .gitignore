@@ -1,0 +1,17 @@
+# Secrets — never commit these
+.env
+session.session
+session.session-journal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Local state
+progress.json
+fetch.log
+
+# Mac
+.DS_Store
