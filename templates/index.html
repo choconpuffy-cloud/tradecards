@@ -531,8 +531,8 @@ function showCard() {
   // Prepend SVG candle illustration for Candlestick deck cards
   let candleSVG = '';
   if (card.deck === 'Candlesticks') {
-    const m = (card.front_html||'').match(/🕯\s*([^<]+)</);
-    const pname = m ? m[1].trim() : '';
+    const nm = (card.front_html||'').match(/🕯\s*([^<]+)</);
+    const pname = nm ? nm[1].trim() : '';
     if (pname && CANDLE_DEFS[pname]) candleSVG = makeCandleSVG(CANDLE_DEFS[pname]);
   }
   if (candleSVG) front = candleSVG + front;
