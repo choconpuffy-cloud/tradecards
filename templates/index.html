@@ -509,6 +509,7 @@ function showCard() {
   document.getElementById('card-wrap').classList.remove('flipped');
   document.getElementById('show-btn').classList.remove('hidden');
   document.getElementById('ratings').classList.add('hidden');
+  document.getElementById('tip-row').style.display = 'none';
   document.getElementById('tap-hint').style.display = '';
 
   const pct = (S.idx / S.cards.length * 100).toFixed(0);
