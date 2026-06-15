@@ -1,7 +1,6 @@
-const CACHE = 'tradecards-v4';
+const CACHE = 'tradecards-v5';
 const PRECACHE = ['/', '/api/cards'];
 
-// On install: cache the shell + card data
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(PRECACHE))
@@ -9,7 +8,6 @@ self.addEventListener('install', e => {
   );
 });
 
-// On activate: clean up old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -18,15 +16,11 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Fetch strategy:
-// - /api/cards  → network first, fall back to cache (keeps cards fresh)
-// - /image/*    → cache first, then network (images rarely change)
-// - everything else → cache first, fall back to network
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  if (url.pathname === '/api/cards') {
-    // Network first — update cache in background
+  // Main HTML shell + card data: network-first so updates appear immediately
+  if (url.pathname === '/' || url.pathname === '/api/cards') {
     e.respondWith(
       fetch(e.request)
         .then(res => {
@@ -39,8 +33,8 @@ self.addEventListener('fetch', e => {
     return;
   }
 
+  // Images: cache-first (they never change once saved)
   if (url.pathname.startsWith('/image/')) {
-    // Cache first — images don't change
     e.respondWith(
       caches.match(e.request).then(cached => {
         if (cached) return cached;
@@ -54,7 +48,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Default: cache first
+  // Everything else: cache-first
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
