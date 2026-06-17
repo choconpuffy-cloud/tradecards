@@ -111,9 +111,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .key-levels{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
 .kl-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
 /* Lightbox */
-#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;opacity:0;pointer-events:none;transition:opacity .2s}
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 #lightbox.open{opacity:1;pointer-events:auto}
-#lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+#lb-wrap{position:relative;cursor:zoom-out}
+#lb-wrap img{display:block;max-width:96vw;max-height:82vh;object-fit:contain;border-radius:6px}
+#lb-lines{position:absolute;inset:0;pointer-events:none}
+.lb-line{position:absolute;left:0;right:0;height:2px;opacity:.9}
+.lb-label{position:absolute;right:5px;font-size:10px;font-weight:700;background:rgba(0,0,0,.82);padding:1px 5px;border-radius:4px;white-space:nowrap;transform:translateY(-110%)}
+#lb-hint{margin-top:10px;font-size:11px;color:rgba(255,255,255,.45);text-align:center}
 /* Chart images: show zoom cursor */
 .card-face img{cursor:zoom-in}
 /* DONE */
@@ -193,7 +198,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </div>
 
 <div id="toast"></div>
-<div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src="" alt=""/></div>
+<div id="lightbox">
+  <div id="lb-wrap" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt=""/>
+    <div id="lb-lines"></div>
+  </div>
+  <div id="lb-hint">Tap to close · Lines = approximate key levels</div>
+</div>
 
 <!-- DONE -->
 <div id="done" class="screen hidden">
@@ -563,8 +574,10 @@ function showCard() {
 
   // Key level chips for chart cards (parse $-prices near support/resistance/target/stop)
   const klDiv = document.getElementById('key-levels');
+  _currentLevels = [];
   if (card.front_type === 'image') {
     const chips = extractKeyLevels(card.back_html || '');
+    _currentLevels = chips;
     if (chips.length) {
       klDiv.innerHTML = chips.map(c => `<span class="kl-chip" style="color:${c.color};border-color:${c.color}44">${c.icon} ${c.label}: $${c.price}</span>`).join('');
       klDiv.style.display = 'flex';
@@ -642,13 +655,46 @@ function showDone() {
 }
 
 // ── Lightbox ──────────────────────────────────────────────────────────────
+let _currentLevels = [];
+
 function openLightbox(src) {
-  const lb = document.getElementById('lightbox');
-  document.getElementById('lightbox-img').src = src;
-  lb.classList.add('open');
+  const img = document.getElementById('lightbox-img');
+  img.src = src;
+  document.getElementById('lightbox').classList.add('open');
+  // Draw lines once the image has rendered and we know its size
+  img.onload = () => drawLevelLines(_currentLevels);
+  if (img.complete && img.naturalWidth) drawLevelLines(_currentLevels);
 }
+
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
+}
+
+function drawLevelLines(levels) {
+  const container = document.getElementById('lb-lines');
+  container.innerHTML = '';
+  if (levels.length < 2) return;
+
+  const prices = levels.map(l => parseFloat(l.price)).filter(p => p > 0);
+  if (prices.length < 2) return;
+  const maxP = Math.max(...prices);
+  const minP = Math.min(...prices);
+  const pad  = (maxP - minP) * 0.25;  // breathing room above/below
+  const span = (maxP - minP) + pad * 2;
+
+  levels.forEach(l => {
+    const p   = parseFloat(l.price);
+    const pct = ((maxP + pad - p) / span * 100).toFixed(1);
+    const line = document.createElement('div');
+    line.className = 'lb-line';
+    line.style.cssText = `top:${pct}%;background:${l.color}`;
+    const lbl = document.createElement('div');
+    lbl.className = 'lb-label';
+    lbl.style.cssText = `top:${pct}%;color:${l.color}`;
+    lbl.textContent = `${l.icon} ${l.label} $${l.price}`;
+    container.appendChild(line);
+    container.appendChild(lbl);
+  });
 }
 
 // ── Key level extraction ───────────────────────────────────────────────────
