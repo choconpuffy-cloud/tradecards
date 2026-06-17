@@ -104,6 +104,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .tip-row{display:flex;gap:6px;padding:0 16px 8px;flex-wrap:wrap}
 .tip-chip{font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px 8px}
 
+/* TradingView link button */
+.tv-btn{display:inline-block;margin-top:14px;padding:9px 16px;background:rgba(88,166,255,.12);border:1px solid rgba(88,166,255,.35);border-radius:10px;color:var(--blue);font-size:13px;font-weight:600;text-decoration:none}
+.tv-btn:active{opacity:.75}
+/* Key level chips */
+.key-levels{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.kl-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
+/* Lightbox */
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;opacity:0;pointer-events:none;transition:opacity .2s}
+#lightbox.open{opacity:1;pointer-events:auto}
+#lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+/* Chart images: show zoom cursor */
+.card-face img{cursor:zoom-in}
 /* DONE */
 #done{background:var(--bg);justify-content:center;align-items:center;text-align:center;padding:40px 30px}
 .done-icon{font-size:64px;margin-bottom:16px}
@@ -157,6 +169,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="card-face card-back">
         <div id="front-preview" style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)"></div>
+        <div id="key-levels" class="key-levels" style="display:none"></div>
         <div id="back-content"></div>
         <div id="flip-back-hint" style="display:none;text-align:center;margin-top:16px;font-size:12px;color:var(--muted)">↩ Tap card to flip back to question</div>
       </div>
@@ -180,6 +193,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </div>
 
 <div id="toast"></div>
+<div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src="" alt=""/></div>
 
 <!-- DONE -->
 <div id="done" class="screen hidden">
@@ -541,10 +555,26 @@ function showCard() {
   document.getElementById('front-content').innerHTML = front;
   document.getElementById('back-content').innerHTML  = card.back_html || '';
 
+  // Tap-to-zoom on front-face chart images
+  if (card.front_type === 'image') {
+    const img = document.querySelector('#front-content img');
+    if (img) img.onclick = e => { e.stopPropagation(); openLightbox(`/image/${card.image_name}`); };
+  }
+
+  // Key level chips for chart cards (parse $-prices near support/resistance/target/stop)
+  const klDiv = document.getElementById('key-levels');
+  if (card.front_type === 'image') {
+    const chips = extractKeyLevels(card.back_html || '');
+    if (chips.length) {
+      klDiv.innerHTML = chips.map(c => `<span class="kl-chip" style="color:${c.color};border-color:${c.color}44">${c.icon} ${c.label}: $${c.price}</span>`).join('');
+      klDiv.style.display = 'flex';
+    } else { klDiv.style.display = 'none'; }
+  } else { klDiv.style.display = 'none'; }
+
   // Copy front into the answer face so it's always visible
   let preview = '';
   if (card.front_type === 'image') {
-    preview = `<img src="/image/${card.image_name}" loading="lazy" style="max-height:180px;width:auto;display:block;margin:0 auto;">`;
+    preview = `<img src="/image/${card.image_name}" loading="lazy" style="max-height:180px;width:auto;display:block;margin:0 auto;cursor:zoom-in" onclick="openLightbox('/image/${card.image_name}')">`;
     if (card.front_caption) preview += `<p style="font-size:12px;color:var(--muted);margin-top:6px;text-align:center">${card.front_caption}</p>`;
   } else {
     preview = `<div style="font-size:13px;color:var(--muted)">${card.front_html||''}</div>`;
@@ -609,6 +639,41 @@ function showDone() {
   document.getElementById('dn-hard').textContent  = hard;
   document.getElementById('dn-good').textContent  = good;
   document.getElementById('dn-easy').textContent  = easy;
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────
+function openLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = src;
+  lb.classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+// ── Key level extraction ───────────────────────────────────────────────────
+function extractKeyLevels(html) {
+  const text = html.replace(/<[^>]+>/g, ' ');
+  const chips = [];
+  const seen = new Set();
+  const rules = [
+    { re: /\bresistance\b[^$\d]*\$?([\d,]+(?:\.\d+)?)/gi, label:'Resistance', icon:'🔴', color:'var(--red)' },
+    { re: /\bsupport\b[^$\d]*\$?([\d,]+(?:\.\d+)?)/gi,    label:'Support',    icon:'🟢', color:'var(--green)' },
+    { re: /\btarget\b[^$\d]*\$?([\d,]+(?:\.\d+)?)/gi,     label:'Target',     icon:'🎯', color:'var(--blue)' },
+    { re: /\bstop\b[^$\d]*\$?([\d,]+(?:\.\d+)?)/gi,       label:'Stop',       icon:'⛔', color:'var(--orange)' },
+    { re: /\$\s*([\d,]+\.\d{2,4})\b/g,                    label:'Level',      icon:'📍', color:'var(--muted)' },
+  ];
+  for (const {re, label, icon, color} of rules) {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const price = m[1].replace(/,/g,'');
+      const key = `${label}:${price}`;
+      if (!seen.has(key) && parseFloat(price) > 0) { seen.add(key); chips.push({label, icon, color, price}); }
+      if (chips.length >= 6) return chips;
+    }
+  }
+  return chips;
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────

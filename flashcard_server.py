@@ -34,10 +34,256 @@ def parse_md(path):
         "body_html": md_to_html(body),
     }
 
+# ── Setup SVG diagrams (schematic price charts) ──────────────────────────────
+def _svg(body, hint=""):
+    hint_el = f'<text x="8" y="13" fill="#8b949e" font-size="9" font-family="sans-serif">{hint}</text>' if hint else ""
+    return f'<svg viewBox="0 0 280 130" style="display:block;margin:0 0 10px;max-width:100%;border-radius:8px;background:#0d1117">{hint_el}{body}</svg>'
+
+def _lvl(y, color, label, x1=8, x2=270):
+    side = max(x1, x2-32)
+    return f'<line x1="{x1}" y1="{y}" x2="{x2}" y2="{y}" stroke="{color}" stroke-width=".85" stroke-dasharray="4,3"/><text x="{side}" y="{y-2}" fill="{color}" font-size="8" font-family="sans-serif">{label}</text>'
+
+def _pl(pts, color, w=2.5):
+    return f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>'
+
+def _zone(x, y, w, h, color="#58a6ff"):
+    return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{color}" opacity=".1" rx="2"/>'
+
+def _lbl(x, y, txt, color="#8b949e"):
+    return f'<text x="{x}" y="{y}" fill="{color}" font-size="8.5" font-family="sans-serif">{txt}</text>'
+
+G="#3fb950"; R="#f85149"; B="#58a6ff"; O="#f0883e"; M="#8b949e"
+
+_SETUP_SVGS = {
+"dd": _svg(
+    _pl("10,115 30,104 48,93 62,84",G)+
+    _pl("62,84 74,89 84,93",R)+
+    _pl("84,93 96,88 110,88",M)+
+    _zone(82,82,30,12)+
+    _lbl(84,104,"DD")+
+    _pl("8,110 60,100 110,92 160,84 220,79 272,76",O,1.2)+
+    _lbl(210,92,"EMA",O)+
+    _pl("110,88 128,76 148,64 168,51",G)+
+    _lvl(82,B,"Entry↑",82)+
+    _lvl(93,R,"Stop",82)+
+    _lvl(53,G,"Target",82),
+    "2 narrow candles at EMA → break direction"),
+
+"sb": _svg(
+    _lvl(68,B,"Resistance",8,270)+
+    _lbl(34,66,"✗",R)+_lbl(100,66,"✓",G)+
+    _pl("10,115 35,95 55,70",G)+
+    _pl("55,70 70,82",R)+
+    _pl("70,82 85,70 100,70",O)+
+    _pl("100,70 120,58 145,44 170,34",G)+
+    _zone(97,64,26,12)+
+    _lvl(82,R,"Stop",82)+
+    _lvl(36,G,"Target",82)+
+    _lbl(46,80,"1st break",M)+
+    _lbl(88,80,"2nd",M),
+    "fail first break → pullback → 2nd attempt succeeds"),
+
+"bb": _svg(
+    _lvl(70,B,"Block high",8,270)+
+    _lvl(96,R,"Block low",8,270)+
+    _zone(14,70,100,26,M)+
+    _pl("14,88 28,72 42,90 56,72 70,90 82,72 96,82",M)+
+    _pl("96,82 116,66 138,52 160,40",G)+
+    _zone(94,62,26,12)+
+    _lvl(62,B,"Entry↑",94)+
+    _lvl(100,R,"Stop",94)+
+    _lvl(42,G,"Target",114),
+    "price coils in block → energy releases on breakout"),
+
+"squeeze": _svg(
+    _lvl(62,B,"Barrier",8,270)+
+    _pl("8,108 50,100 90,92 130,82 170,74 210,68 240,65",O,1.2)+
+    _lbl(200,79,"EMA",O)+
+    _pl("10,100 28,92 46,84 64,78 82,74 100,70 118,68",M)+
+    _pl("118,68 138,55 160,43 184,33",G)+
+    _zone(112,58,12,14)+
+    _lvl(58,B,"Entry↑",114)+
+    _lvl(72,R,"Stop",114)+
+    _lvl(35,G,"Target",136),
+    "price trapped between barrier & rising EMA → explosive break"),
+
+"combi": _svg(
+    _lbl(50,125,"Powerbar",M)+_lbl(96,125,"Inside bar",M)+
+    _pl("10,110 35,100 55,88",M)+
+    _lvl(78,M,"",52,80)+
+    _lvl(108,M,"",52,80)+
+    _zone(50,78,32,30,M)+
+    '<line x1="66" y1="80" x2="66" y2="108" stroke="'+M+'" stroke-width=".5"/>'+
+    '<rect x="52" y="80" width="28" height="28" fill="none" stroke="'+O+'" stroke-width=".8" stroke-dasharray="2,2" rx="1"/>'+
+    '<rect x="58" y="88" width="16" height="14" fill="'+G+'" rx="1" opacity=".9"/>'+
+    _pl("80,84 100,71 120,58 140,44",G)+
+    _zone(78,74,10,16,B)+
+    _lvl(74,B,"Entry↑",80)+
+    _lvl(112,R,"Stop",80)+
+    _lvl(46,G,"Target",100),
+    "Powerbar + inside bar → enter on inside bar break"),
+
+"fb": _svg(
+    _lvl(68,B,"Key Level",8,270)+
+    _pl("10,112 30,100 50,70",G)+
+    _pl("50,70 60,82",R)+
+    _pl("60,82 72,100 88,70",G)+
+    _pl("88,70 98,84",R)+
+    _pl("98,84 112,110 125,70",G)+
+    _lbl(42,92,"Touch 1",M)+_lbl(76,112,"Touch 2",M)+_lbl(108,122,"Touch 3",M)+
+    _pl("125,70 145,56 165,42 188,30",G)+
+    _zone(122,60,18,12)+
+    _lvl(60,B,"Entry↑",122)+
+    _lvl(73,R,"Stop",122)+
+    _lvl(32,G,"Target",140),
+    "level tested multiple times → first clean breakout"),
+
+"tipping": _svg(
+    _pl("10,118 30,106 50,90 70,75 90,60 108,50",G)+
+    '<line x1="108" y1="38" x2="108" y2="66" stroke="'+R+'" stroke-width="1.5" stroke-linecap="round"/>'+
+    '<line x1="122" y1="42" x2="122" y2="62" stroke="'+R+'" stroke-width="1.5" stroke-linecap="round"/>'+
+    _lbl(100,36,"Exhaustion",R)+
+    _pl("108,50 122,56 138,68 155,80 172,94 190,108",R)+
+    _zone(104,44,24,22,R)+
+    _lvl(55,R,"Entry↓",130)+
+    _lvl(40,R,"Stop",130)+
+    _lvl(110,G,"Target",150),
+    "trend extends too far → rejection wicks → counter-trend entry"),
+
+"ema_sr": _svg(
+    _pl("8,108 50,100 110,90 170,82 230,76 272,72",O,1.2)+
+    _lbl(224,86,"20 EMA",O)+
+    _pl("10,96 30,84 50,74",G)+
+    _pl("50,74 65,82 78,90",R)+
+    _pl("78,90 98,80 118,68",G)+
+    _pl("118,68 132,76 144,84",R)+
+    _pl("144,84 162,72 180,60 200,48",G)+
+    _lbl(58,100,"Buy",B)+_lbl(132,94,"Buy",B)+
+    _zone(62,82,16,10,B)+_zone(134,76,12,10,B)+
+    _lvl(90,M,"Pullback zone",62)+
+    _lvl(84,M,"",132),
+    "20 EMA = dynamic support in uptrend — buy the dip to it"),
+}
+
+_CHART_SVGS = {
+"double_top": _svg(
+    _lvl(50,R,"Resistance",8,270)+
+    _lvl(85,B,"Neckline",8,270)+
+    _pl("10,110 45,52 70,85 100,52 130,90 160,108",M)+
+    _zone(126,85,40,12,R)+
+    _lbl(28,44,"Peak 1",M)+_lbl(92,44,"Peak 2",M)+
+    _pl("130,90 150,100 172,115",R)+
+    _lvl(110,G,"Target",148)+
+    _lbl(140,88,"Entry↓",B),
+    "2 peaks at same resistance → bearish reversal"),
+
+"double_bottom": _svg(
+    _lvl(95,G,"Support",8,270)+
+    _lvl(65,B,"Neckline",8,270)+
+    _pl("10,40 42,92 68,65 98,92 128,60 158,38",M)+
+    _zone(124,58,16,12,G)+
+    _lbl(28,106,"Trough 1",M)+_lbl(88,106,"Trough 2",M)+
+    _pl("128,60 148,48 170,36 192,24",G)+
+    _lvl(25,G,"Target",148)+
+    _lbl(130,56,"Entry↑",B),
+    "2 troughs at same support → bullish reversal"),
+
+"head_shoulders": _svg(
+    _lvl(85,B,"Neckline",8,270)+
+    _pl("10,105 35,70 55,85 80,48 105,85 128,70 148,90 175,112",M)+
+    _lbl(28,66,"LS",M)+_lbl(74,42,"Head",M)+_lbl(122,66,"RS",M)+
+    _zone(144,85,36,14,R)+
+    _pl("148,90 162,100 178,115",R)+
+    _lvl(110,G,"Target",170)+
+    _lbl(150,88,"Entry↓",B),
+    "3 peaks (head highest) → breakdown below neckline"),
+
+"asc_triangle": _svg(
+    _lvl(58,R,"Resistance",8,270)+
+    _pl("15,105 40,60 60,92 85,60 108,80 132,60 152,75",M)+
+    '<line x1="15" y1="105" x2="155" y2="73" stroke="'+G+'" stroke-width="1" stroke-dasharray="4,3"/>'+
+    _pl("155,70 175,55 196,40",G)+
+    _lbl(20,116,"Rising lows",G)+
+    _zone(152,55,20,18,G)+
+    _lvl(42,G,"Target",170)+
+    _lbl(154,68,"Entry↑",B),
+    "flat resistance + rising lows → bullish breakout"),
+
+"desc_triangle": _svg(
+    _lvl(96,G,"Support",8,270)+
+    _pl("15,55 40,94 60,70 85,94 108,78 132,94 150,82",M)+
+    '<line x1="15" y1="55" x2="155" y2="84" stroke="'+R+'" stroke-width="1" stroke-dasharray="4,3"/>'+
+    _pl("155,90 172,100 192,115",R)+
+    _lbl(20,48,"Falling highs",R)+
+    _zone(150,90,20,18,R)+
+    _lvl(115,R,"Target",168)+
+    _lbl(153,100,"Entry↓",B),
+    "flat support + falling highs → bearish breakdown"),
+
+"sym_triangle": _svg(
+    '<line x1="15" y1="50" x2="148" y2="78" stroke="'+R+'" stroke-width="1" stroke-dasharray="4,3"/>'+
+    '<line x1="15" y1="105" x2="148" y2="78" stroke="'+G+'" stroke-width="1" stroke-dasharray="4,3"/>'+
+    _pl("15,55 38,98 60,65 84,95 106,72 128,85 148,78",M)+
+    _pl("148,78 168,62 190,46 212,32",G)+
+    _lbl(20,44,"Lower highs",R)+_lbl(20,120,"Higher lows",G)+
+    _zone(144,62,20,18,G)+
+    _lvl(32,G,"Target",188)+
+    _lbl(148,72,"Entry↑",B),
+    "converging highs & lows → breakout on compression"),
+
+"bull_flag": _svg(
+    _lbl(20,122,"Pole",G)+_lbl(80,122,"Flag",M)+_lbl(152,122,"Target",G)+
+    '<line x1="62" y1="20" x2="62" y2="110" stroke="'+M+'" stroke-width=".6" stroke-dasharray="2,2"/>'+
+    '<line x1="118" y1="20" x2="118" y2="110" stroke="'+M+'" stroke-width=".6" stroke-dasharray="2,2"/>'+
+    _pl("10,112 34,80 58,42",G)+
+    _pl("58,42 72,55 86,50 100,62 118,55",M)+
+    _pl("118,55 138,40 160,25 182,12",G)+
+    _zone(114,46,14,18,G)+
+    _lvl(26,G,"Target",136)+
+    _lvl(66,R,"Stop",120)+
+    _lbl(118,50,"Entry↑",B),
+    "strong pole + pullback flag → continuation breakout"),
+
+"bear_flag": _svg(
+    _lbl(20,14,"Pole",R)+_lbl(80,14,"Flag",M)+_lbl(152,14,"Target",R)+
+    '<line x1="62" y1="20" x2="62" y2="120" stroke="'+M+'" stroke-width=".6" stroke-dasharray="2,2"/>'+
+    '<line x1="118" y1="20" x2="118" y2="120" stroke="'+M+'" stroke-width=".6" stroke-dasharray="2,2"/>'+
+    _pl("10,28 34,58 58,96",R)+
+    _pl("58,96 72,82 86,88 100,75 118,82",M)+
+    _pl("118,82 140,96 162,112 182,124",R)+
+    _zone(114,78,14,16,R)+
+    _lvl(104,R,"Stop",120)+
+    _lvl(122,R,"Entry↓",120)+
+    _lvl(124,G,"Target",140),
+    "strong pole down + bounce flag → continuation breakdown"),
+
+"cup_handle": _svg(
+    _lbl(42,116,"Cup",M)+_lbl(140,116,"Handle",M)+
+    _pl("10,52 28,68 46,88 64,105 84,112 104,108 122,92 140,68 158,52",G)+
+    _pl("158,52 168,62 178,58",M)+
+    _pl("178,58 196,44 214,30 232,18",G)+
+    _lvl(52,B,"Rim level",8,240)+
+    _zone(174,50,14,16,G)+
+    _lvl(20,G,"Target",192)+
+    _lbl(178,48,"Entry↑",B),
+    "U-shaped base + small handle → breakout above rim"),
+
+"support_resistance": _svg(
+    _pl("10,58 32,80 50,52 70,80 90,50 110,80 132,48",G)+
+    _pl("132,48 155,80 176,96 198,80 218,100",M)+
+    _lvl(80,B,"Level",8,270)+
+    _lbl(18,75,"Support",G)+_lbl(158,75,"Resistance",R)+
+    '<line x1="138" y1="50" x2="138" y2="115" stroke="'+M+'" stroke-width=".6" stroke-dasharray="2,2"/>'+
+    _lbl(138,120,"Break →",M)+
+    _lbl(140,75,"Flip",B),
+    "support flips to resistance once broken — roles reverse"),
+}
+
 VOLMAN_SETUPS = [
     ("Double Doji (DD)", ["volman","with-trend"],
      "What is the <b>Double Doji (DD)</b> setup?",
-     """<span class='tag'>Volman · With-Trend</span><h3>Double Doji (DD)</h3>
+     f"""<span class='tag'>Volman · With-Trend</span><h3>Double Doji (DD)</h3>
+{_SETUP_SVGS['dd']}
 <p>Two consecutive <b>doji or narrow-range candles</b> forming a tight pause in a trend.</p>
 <ul><li>Best used <b>with the trend</b> — forms after a pullback to EMA</li>
 <li>Signals buyer/seller balance before momentum resumes</li>
@@ -48,7 +294,8 @@ VOLMAN_SETUPS = [
 
     ("Second Break (SB)", ["volman","with-trend"],
      "What is the <b>Second Break (SB)</b> setup?",
-     """<span class='tag'>Volman · With-Trend</span><h3>Second Break (SB)</h3>
+     f"""<span class='tag'>Volman · With-Trend</span><h3>Second Break (SB)</h3>
+{_SETUP_SVGS['sb']}
 <p>Price tests a level, <b>fails</b>, pulls back, then makes a <b>second attempt</b> that succeeds.</p>
 <ul><li>First break shakes out weak hands</li>
 <li>Second break powered by stronger momentum</li>
@@ -59,7 +306,8 @@ VOLMAN_SETUPS = [
 
     ("Block Break (BB)", ["volman","breakout"],
      "What is the <b>Block Break (BB)</b> setup?",
-     """<span class='tag'>Volman · Breakout</span><h3>Block Break (BB)</h3>
+     f"""<span class='tag'>Volman · Breakout</span><h3>Block Break (BB)</h3>
+{_SETUP_SVGS['bb']}
 <p>Price consolidates in a <b>tight rectangular block</b> — clearly defined highs and lows.</p>
 <ul><li>Draw a rectangle — price coils like a spring</li>
 <li>Longer block = more potential energy</li>
@@ -70,7 +318,8 @@ VOLMAN_SETUPS = [
 
     ("BB Squeeze", ["volman","breakout"],
      "What is the <b>BB Squeeze</b> (Bollinger Band Squeeze)?",
-     """<span class='tag'>Volman · Breakout</span><h3>BB Squeeze</h3>
+     f"""<span class='tag'>Volman · Breakout</span><h3>BB Squeeze</h3>
+{_SETUP_SVGS['squeeze']}
 <p>Price sandwiched between the <b>20 EMA and a barrier</b> — volatility compressed.</p>
 <ul><li>Bollinger Bands contract sharply</li>
 <li>Longer squeeze = stronger eventual breakout</li>
@@ -82,7 +331,8 @@ VOLMAN_SETUPS = [
 
     ("Pattern Break Combi", ["volman","breakout"],
      "What is the <b>Pattern Break Combi</b> setup?",
-     """<span class='tag'>Volman · Breakout</span><h3>Pattern Break Combi</h3>
+     f"""<span class='tag'>Volman · Breakout</span><h3>Pattern Break Combi</h3>
+{_SETUP_SVGS['combi']}
 <p>A <b>Powerbar</b> (large directional candle) followed by an <b>inside bar</b> closing in the same direction.</p>
 <ul><li>Powerbar = decisive momentum candle</li>
 <li>Inside bar = pause and reload</li>
@@ -93,7 +343,8 @@ VOLMAN_SETUPS = [
 
     ("First Break (FB)", ["volman","breakout"],
      "What is the <b>First Break (FB)</b> setup?",
-     """<span class='tag'>Volman · Breakout</span><h3>First Break (FB)</h3>
+     f"""<span class='tag'>Volman · Breakout</span><h3>First Break (FB)</h3>
+{_SETUP_SVGS['fb']}
 <p>The <b>initial breakout</b> of a key support, resistance, or consolidation boundary.</p>
 <ul><li>Works best with a clean, obvious level</li>
 <li>Higher success when level has been tested multiple times</li>
@@ -102,7 +353,8 @@ VOLMAN_SETUPS = [
 
     ("Tipping Point", ["volman","reversal"],
      "What is the <b>Tipping Point</b> technique?",
-     """<span class='tag'>Volman · Reversal</span><h3>Tipping Point</h3>
+     f"""<span class='tag'>Volman · Reversal</span><h3>Tipping Point</h3>
+{_SETUP_SVGS['tipping']}
 <p>A <b>price exhaustion signal</b> — the market has pushed too far and is about to reverse.</p>
 <ul><li>Occurs at major S/R after an extended move</li>
 <li>Signs: long wicks, doji at extremes, failed continuation</li>
@@ -111,7 +363,8 @@ VOLMAN_SETUPS = [
 
     ("EMA as Dynamic S/R", ["volman","concept"],
      "How does Volman use the <b>EMA</b> in his setups?",
-     """<span class='tag'>Volman · Core Concept</span><h3>EMA as Dynamic Support/Resistance</h3>
+     f"""<span class='tag'>Volman · Core Concept</span><h3>EMA as Dynamic Support/Resistance</h3>
+{_SETUP_SVGS['ema_sr']}
 <p>Volman uses the <b>20-period EMA</b> as dynamic support/resistance — not a signal generator.</p>
 <ul><li><b>Uptrend:</b> EMA = support → pullbacks = buy opportunities</li>
 <li><b>Downtrend:</b> EMA = resistance → bounces = sell opportunities</li>
@@ -196,6 +449,87 @@ CONCEPTS = [
      "<span class='tag'>Price Action</span><h3>Timeframe Selection</h3><table><tr><th>Timeframe</th><th>Style</th><th>Noise</th></tr><tr><td>1m–5m</td><td>Scalping</td><td>Very high</td></tr><tr><td>15m–1H</td><td>Day trading</td><td>Medium</td></tr><tr><td>4H–Daily</td><td>Swing trading</td><td>Low</td></tr></table><p>Your group uses <b>H1</b> — same as Volman's books.</p><blockquote>Always check H4/Daily before acting on an H1 signal.</blockquote>"),
     ("Stop Loss Placement",["risk"],"Where should your <b>Stop Loss</b> go in Volman's method?",
      "<span class='tag'>Risk Management</span><h3>Stop Loss Placement</h3><p>Just beyond the point where the <b>trade idea is invalidated</b> — not an arbitrary pip distance.</p><ul><li>DD/SB: just beyond the pattern's opposite side</li><li>BB/Squeeze: just inside the broken boundary</li><li><b>Never widen a stop</b> to avoid a loss</li><li>Once at +1R → move stop to breakeven</li></ul><table><tr><th>Max risk</th><td>1–2% of account per trade</td></tr></table>"),
+
+    # ── Chart Patterns ────────────────────────────────────────────────────────
+    ("Double Top",["chart-patterns","bearish"],
+     "<h2>📊 Double Top</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bearish'>▼ Bearish Reversal</span><h3>Double Top</h3>
+{_CHART_SVGS['double_top']}
+<p>Two peaks at the <b>same resistance</b> — sellers reject price twice at the same level.</p>
+<ul><li>Entry: break <b>below neckline</b> (valley between peaks)</li><li>Stop: above second peak</li><li>Target: neckline − (resistance − neckline)</li></ul>
+<a href="https://www.tradingview.com/ideas/doubletop/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Double Bottom",["chart-patterns","bullish"],
+     "<h2>📊 Double Bottom</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bullish'>▲ Bullish Reversal</span><h3>Double Bottom</h3>
+{_CHART_SVGS['double_bottom']}
+<p>Two troughs at the <b>same support</b> — buyers defend the same floor twice.</p>
+<ul><li>Entry: break <b>above neckline</b></li><li>Stop: below second trough</li><li>Target: neckline + (neckline − support)</li></ul>
+<a href="https://www.tradingview.com/ideas/doublebottom/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Head & Shoulders",["chart-patterns","bearish"],
+     "<h2>📊 Head & Shoulders</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bearish'>▼ Bearish Reversal</span><h3>Head & Shoulders</h3>
+{_CHART_SVGS['head_shoulders']}
+<p>3 peaks: left shoulder, higher head, right shoulder. Signals end of uptrend.</p>
+<ul><li>Entry: neckline break (LS/RS valley)</li><li>Stop: above right shoulder</li><li>Target: head height below neckline</li></ul>
+<a href="https://www.tradingview.com/ideas/headandshoulders/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Ascending Triangle",["chart-patterns","bullish"],
+     "<h2>📊 Ascending Triangle</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bullish'>▲ Bullish Continuation</span><h3>Ascending Triangle</h3>
+{_CHART_SVGS['asc_triangle']}
+<p>Flat resistance top + rising lows. Buyers making higher lows = increasing pressure.</p>
+<ul><li>Entry: break above flat resistance</li><li>Stop: below last higher low</li><li>Target: triangle height added to breakout</li></ul>
+<a href="https://www.tradingview.com/ideas/ascendingtriangle/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Descending Triangle",["chart-patterns","bearish"],
+     "<h2>📊 Descending Triangle</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bearish'>▼ Bearish Continuation</span><h3>Descending Triangle</h3>
+{_CHART_SVGS['desc_triangle']}
+<p>Flat support bottom + falling highs. Sellers making lower highs = increasing pressure down.</p>
+<ul><li>Entry: break below flat support</li><li>Stop: above last lower high</li><li>Target: triangle height subtracted from breakdown</li></ul>
+<a href="https://www.tradingview.com/ideas/descendingtriangle/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Symmetrical Triangle",["chart-patterns","neutral"],
+     "<h2>📊 Symmetrical Triangle</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag'>◆ Continuation / Breakout</span><h3>Symmetrical Triangle</h3>
+{_CHART_SVGS['sym_triangle']}
+<p>Converging highs and lows. Neither side wins until the breakout — direction follows prior trend.</p>
+<ul><li>Entry: break of either trendline (bias = prior trend)</li><li>Stop: opposite trendline</li><li>Target: widest point of triangle added to break</li></ul>
+<a href="https://www.tradingview.com/ideas/symmetricaltriangle/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Bull Flag",["chart-patterns","bullish"],
+     "<h2>📊 Bull Flag</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bullish'>▲ Bullish Continuation</span><h3>Bull Flag</h3>
+{_CHART_SVGS['bull_flag']}
+<p>Strong pole up + brief consolidation (flag). Breakout continues the up move.</p>
+<ul><li>Entry: break above flag upper boundary</li><li>Stop: below flag lower boundary</li><li>Target: pole height added to breakout point</li></ul>
+<a href="https://www.tradingview.com/ideas/bullflag/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Bear Flag",["chart-patterns","bearish"],
+     "<h2>📊 Bear Flag</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bearish'>▼ Bearish Continuation</span><h3>Bear Flag</h3>
+{_CHART_SVGS['bear_flag']}
+<p>Strong pole down + brief consolidation (flag). Breakdown continues the down move.</p>
+<ul><li>Entry: break below flag lower boundary</li><li>Stop: above flag upper boundary</li><li>Target: pole height subtracted from breakdown</li></ul>
+<a href="https://www.tradingview.com/ideas/bearflag/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("Cup & Handle",["chart-patterns","bullish"],
+     "<h2>📊 Cup & Handle</h2><p class='hint'>What does this pattern signal?</p>",
+     f"""<span class='tag bullish'>▲ Bullish Continuation</span><h3>Cup &amp; Handle</h3>
+{_CHART_SVGS['cup_handle']}
+<p>U-shaped base (cup) + small pullback (handle). Breakout above cup rim signals continuation.</p>
+<ul><li>Entry: break above rim level</li><li>Stop: below handle low</li><li>Target: cup depth added to rim</li></ul>
+<a href="https://www.tradingview.com/ideas/cupandhandle/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
+
+    ("S/R Role Reversal",["chart-patterns","neutral"],
+     "<h2>📊 S/R Role Reversal</h2><p class='hint'>What happens when support breaks?</p>",
+     f"""<span class='tag'>◆ Key Concept</span><h3>Support/Resistance Role Reversal</h3>
+{_CHART_SVGS['support_resistance']}
+<p>Once a support breaks, it <b>flips to resistance</b>. Once resistance breaks, it becomes support.</p>
+<ul><li>Retest of the flipped level = high-probability entry</li><li>The more times a level was tested, the stronger it becomes when flipped</li></ul>
+<a href="https://www.tradingview.com/ideas/supportandresistance/" target="_blank" class="tv-btn">See Real Examples ↗</a>"""),
 ]
 
 
