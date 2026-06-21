@@ -533,6 +533,107 @@ CONCEPTS = [
 ]
 
 
+COMPARISONS = [
+    # (display name, left pattern key, right pattern key, back_html)
+    ("Tweezer Tops vs Tweezer Bottoms",
+     "Tweezer Tops", "Tweezer Bottoms",
+     """<h3>Tweezer Tops vs Tweezer Bottoms</h3>
+<table><tr><th></th><th>🔴 Tweezer Tops</th><th>🟢 Tweezer Bottoms</th></tr>
+<tr><td>Appears after</td><td>Uptrend</td><td>Downtrend</td></tr>
+<tr><td>Shared feature</td><td colspan='2'>Two candles touching the same level</td></tr>
+<tr><td>Shared level</td><td>Same <b>high</b> (resistance)</td><td>Same <b>low</b> (support)</td></tr>
+<tr><td>Signal</td><td>Bearish reversal ↓</td><td>Bullish reversal ↑</td></tr>
+<tr><td>Why it works</td><td>Sellers reject the high twice</td><td>Buyers defend the low twice</td></tr></table>
+<blockquote>Memory: <b>Tops = ceiling</b> (can't go higher) → sell. <b>Bottoms = floor</b> (can't go lower) → buy.</blockquote>"""),
+
+    ("Hammer vs Hanging Man",
+     "Hammer", "Hanging Man",
+     """<h3>Hammer vs Hanging Man</h3>
+<p>Identical shape — the difference is <b>where it appears</b> in the trend.</p>
+<table><tr><th></th><th>🟢 Hammer</th><th>🔴 Hanging Man</th></tr>
+<tr><td>Appears after</td><td>Downtrend</td><td>Uptrend</td></tr>
+<tr><td>Shape</td><td colspan='2'>Small body at top, long lower wick (≥2×)</td></tr>
+<tr><td>Signal</td><td>Bullish reversal ↑</td><td>Bearish warning ↓</td></tr>
+<tr><td>Logic</td><td>Sellers pushed down, buyers recovered → strength</td><td>Sellers appeared — trend may be ending</td></tr></table>
+<blockquote>Same candle, opposite meaning. Always check the <b>trend before the candle</b>.</blockquote>"""),
+
+    ("Inverted Hammer vs Shooting Star",
+     "Inverted Hammer", "Shooting Star",
+     """<h3>Inverted Hammer vs Shooting Star</h3>
+<p>Again — same shape, opposite contexts.</p>
+<table><tr><th></th><th>🟢 Inverted Hammer</th><th>🔴 Shooting Star</th></tr>
+<tr><td>Appears after</td><td>Downtrend</td><td>Uptrend</td></tr>
+<tr><td>Shape</td><td colspan='2'>Small body at bottom, long upper wick</td></tr>
+<tr><td>Signal</td><td>Bullish reversal ↑</td><td>Bearish reversal ↓</td></tr>
+<tr><td>Logic</td><td>Buyers tested highs — interest returning</td><td>Buyers pushed up but sellers took over</td></tr></table>
+<blockquote>Shooting Star: the price "shot up" but came back down — sellers won the session.</blockquote>"""),
+
+    ("Dragonfly Doji vs Gravestone Doji",
+     "Dragonfly Doji", "Gravestone Doji",
+     """<h3>Dragonfly Doji vs Gravestone Doji</h3>
+<table><tr><th></th><th>🟢 Dragonfly</th><th>🔴 Gravestone</th></tr>
+<tr><td>Shape</td><td>T — long lower wick, no upper</td><td>⊥ — long upper wick, no lower</td></tr>
+<tr><td>Signal</td><td>Bullish reversal (at lows)</td><td>Bearish reversal (at highs)</td></tr>
+<tr><td>Story</td><td>Sellers pushed down, buyers recovered all</td><td>Buyers pushed up, sellers took all back</td></tr>
+<tr><td>Best at</td><td>Support zones</td><td>Resistance zones</td></tr></table>
+<blockquote>Memory: Dragonfly = <b>rising</b> creature → bullish. Gravestone = <b>death</b> of uptrend → bearish.</blockquote>"""),
+
+    ("Bullish Engulfing vs Bearish Engulfing",
+     "Bullish Engulfing", "Bearish Engulfing",
+     """<h3>Bullish Engulfing vs Bearish Engulfing</h3>
+<p>A large candle completely swallows the previous one — but direction is everything.</p>
+<table><tr><th></th><th>🟢 Bullish Engulfing</th><th>🔴 Bearish Engulfing</th></tr>
+<tr><td>Pattern</td><td>Small red → large green engulfs</td><td>Small green → large red engulfs</td></tr>
+<tr><td>Appears after</td><td>Downtrend</td><td>Uptrend</td></tr>
+<tr><td>Signal</td><td>Strong bullish reversal ↑</td><td>Strong bearish reversal ↓</td></tr>
+<tr><td>Strength</td><td colspan='2'>Larger the engulfing body, stronger the signal</td></tr></table>
+<blockquote>The engulfing candle = new side taking full control. Watch volume — high vol confirms.</blockquote>"""),
+
+    ("Morning Star vs Evening Star",
+     "Morning Star", "Evening Star",
+     """<h3>Morning Star vs Evening Star</h3>
+<p>3-candle reversal patterns — mirror images of each other.</p>
+<table><tr><th></th><th>🟢 Morning Star</th><th>🔴 Evening Star</th></tr>
+<tr><td>Candle 1</td><td>Long bearish</td><td>Long bullish</td></tr>
+<tr><td>Candle 2</td><td>Small star (gap down)</td><td>Small star (gap up)</td></tr>
+<tr><td>Candle 3</td><td>Long bullish recovery</td><td>Long bearish reversal</td></tr>
+<tr><td>Signal</td><td>Bullish reversal ↑ at bottom</td><td>Bearish reversal ↓ at top</td></tr></table>
+<blockquote>Morning Star = dawn after darkness → bullish. Evening Star = dusk before night → bearish.</blockquote>"""),
+
+    ("Bullish Harami vs Bearish Harami",
+     "Bullish Harami", "Bearish Harami",
+     """<h3>Bullish Harami vs Bearish Harami</h3>
+<p>"Harami" = pregnant in Japanese — small candle inside the large candle's body.</p>
+<table><tr><th></th><th>🟢 Bullish Harami</th><th>🔴 Bearish Harami</th></tr>
+<tr><td>Candle 1</td><td>Large bearish</td><td>Large bullish</td></tr>
+<tr><td>Candle 2</td><td>Small bullish inside candle 1</td><td>Small bearish inside candle 1</td></tr>
+<tr><td>Signal</td><td>Potential bullish reversal</td><td>Potential bearish reversal</td></tr>
+<tr><td>vs Engulfing</td><td colspan='2'>Weaker signal — needs confirmation candle</td></tr></table>
+<blockquote>Harami is a warning, not a trigger. Wait for the next candle to confirm direction.</blockquote>"""),
+
+    ("Piercing Line vs Dark Cloud Cover",
+     "Piercing Line", "Dark Cloud Cover",
+     """<h3>Piercing Line vs Dark Cloud Cover</h3>
+<p>Both are 2-candle reversals where the second candle closes past the <b>midpoint</b> of the first.</p>
+<table><tr><th></th><th>🟢 Piercing Line</th><th>🔴 Dark Cloud Cover</th></tr>
+<tr><td>Candle 1</td><td>Long bearish</td><td>Long bullish</td></tr>
+<tr><td>Candle 2</td><td>Opens below low, closes <b>above midpoint</b> of candle 1</td><td>Opens above high, closes <b>below midpoint</b> of candle 1</td></tr>
+<tr><td>Signal</td><td>Bullish reversal ↑</td><td>Bearish reversal ↓</td></tr>
+<tr><td>Key rule</td><td colspan='2'>Must close past the 50% midpoint — otherwise ignore</td></tr></table>"""),
+
+    ("Doji vs Spinning Top",
+     "Doji", "Spinning Top",
+     """<h3>Doji vs Spinning Top</h3>
+<p>Both signal indecision — the difference is the <b>body size</b>.</p>
+<table><tr><th></th><th>Doji</th><th>Spinning Top</th></tr>
+<tr><td>Body</td><td>Nearly zero (open ≈ close)</td><td>Small but visible body</td></tr>
+<tr><td>Wicks</td><td>Any length</td><td>Roughly equal length both sides</td></tr>
+<tr><td>Signal strength</td><td>Stronger indecision</td><td>Moderate indecision</td></tr>
+<tr><td>Meaning</td><td colspan='2'>Neither bulls nor bears in full control — reversal possible</td></tr></table>
+<blockquote>Both matter most after a strong trend. Alone they're warnings — combine with S/R and volume.</blockquote>"""),
+]
+
+
 def load_all_cards():
     cards = []
     for md_path in sorted(OUTPUT_DIR.rglob("*.md")):
@@ -568,6 +669,12 @@ def load_all_cards():
     for name, tags, front, back in CONCEPTS:
         cards.append({"id": uid(f"concept_{name}"), "deck": "Price Action", "deck_icon": "💡",
                       "front_type": "text", "front_html": front, "back_html": back, "tags": tags})
+    for pair, left, right, back in COMPARISONS:
+        cards.append({"id": uid(f"compare_{pair}"), "deck": "Compare", "deck_icon": "⚖️",
+                      "front_type": "text",
+                      "front_html": f'<h2>⚖️ {pair}</h2><p class="hint">What\'s the key difference — shape, context, or signal?</p>',
+                      "back_html": back, "tags": ["comparison"],
+                      "comparison": [left, right]})
     return cards
 
 ALL_CARDS = None

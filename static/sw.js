@@ -1,4 +1,4 @@
-const CACHE = 'tradecards-v7';
+const CACHE = 'tradecards-v8';
 const PRECACHE = ['/', '/api/cards'];
 
 self.addEventListener('install', e => {
